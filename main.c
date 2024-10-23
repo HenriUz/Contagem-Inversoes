@@ -1,7 +1,17 @@
 /*
 main.c
 
-Descrição: este código tem o objetivo de identificar o número de inversões entre duas listas.
+Descrição: este código tem o objetivo de identificar o número de inversões entre duas listas. A maneira adotada para resolver isso foi por meio do mapeamento das posições dos elementos do segundo vetor no primeiro, para isso foi utilizado uma árvore balanceada para armazenar o primeiro vetor com os índices equivalentes, e depois é buscado na árvore os elementos do vetor 2, se não encontrar não faz nada, mas se encontrar salva o índice em outro vetor auxiliar. Por fim, basta apenas contar as inversões dos elementos mapeados enquanto ordenamos eles.
+
+Visualização do mapeamento:
+Vetor 1: 1 3 5 2 4 6
+Vetor 2: 5 6 1 4 2 3
+
+Índices do vetor 1 na árvore: 0 1 2 3 4 5
+Vetor 2 mapeado: 2 5 0 4 3 1
+Note que o algoritmo funcionará mesmo para vetores de tamanho diferentes e com muitos elementos que não sejam em comum.
+
+Observação: foi escolhido usar uma árvore balanceada, no caso AVL, para garantir que o "for" do mapeamento não seja de complexidade O(n²), pois com a busca da árvore sendo O(log n), o "for" do mapeamento será O(nlog n).
 */
 
 /* --- Includes. --- */
@@ -12,10 +22,10 @@ Descrição: este código tem o objetivo de identificar o número de inversões 
 /* --- Estruturas. --- */
 
 typedef struct no {
-    int valor; //Valor que no vetor.
+    int valor; //Valor no vetor.
     int indice; //Índice do valor no vetor.
     int fb; //Fator de balanceamento.
-    struct no *fEsq, *fDir, *pai;
+    struct no *fEsq, *fDir, *pai; //Ponteiros para os nós próximos.
 }no;
 
 typedef struct arvore {
@@ -118,7 +128,7 @@ void rotacaoDir(no *noDesbalanceado) {
 }
 
 /*
-Descrição: função que identifica qual tipo de rotação deve ser feito para balancear a árvore. E corrige os fb dos nós envolvidos na rotação (existe uma tabela para isso).
+Descrição: função que identifica qual tipo de rotação deve ser feito para balancear a árvore, e corrige os fb dos nós envolvidos na rotação.
 Entrada: ponteiro para a árvore, ponteiro para o nó desbalanceado.
 Saída: nada.
 */
@@ -208,11 +218,11 @@ void balanceia(arvore *arv, no *noDesbalanceado) {
 
 /*
 Descrição: função que atualiza os fb dos nós na subárvore onde o novo nó foi inserido. Caso identifique um balanceamento, chama a função de balancear.
-Entrada: ponteiro para a árvore, ponteiro para o nó inserido.
+Entrada: ponteiro para a árvore, ponteiro para o nó.
 Saída: nada.
 */
-void atualizaFB_insercao(arvore *arv, no *folha) {
-    no *atual = folha;
+void atualizaFB_insercao(arvore *arv, no *novo) {
+    no *atual = novo;
     /* Atualizando FBs. */
     do {
         if(atual == atual->pai->fEsq && atual->pai != arv->sentinela) {
@@ -230,7 +240,7 @@ void atualizaFB_insercao(arvore *arv, no *folha) {
 
 /*
 Descrição: função que atualiza os fb dos nós na subárvore onde o elemento foi removido. Diferente da inserção, não para de verificar após realizar um balanceamento.
-Entrada: ponteiro para a árvore, ponteiro para o pai do elemento removido, inteiro do indice (para identificar em qual subárvore estava).
+Entrada: ponteiro para a árvore, ponteiro para o pai do elemento removido, inteiro do valor (para identificar em qual subárvore estava).
 Saída: nada.
 */
 void atualizaFB_remocao(arvore *arv, no *pai, int valor) {
@@ -238,7 +248,7 @@ void atualizaFB_remocao(arvore *arv, no *pai, int valor) {
     /* Atualizando os FBs. */
     if(atual != arv->sentinela) {
         //O elemento removido não foi a raiz.
-        if(valor <= atual->valor) { //≤, pois estamos usando o predecessor, logo na remoção, o pai pode passar a ter o mesmo valor da chave removida na esquerda.
+        if(valor <= atual->valor) { //≤, pois estamos usando o predecessor, então, na remoção o pai pode passar a ter o mesmo valor da chave removida na esquerda.
             atual->fb++;
         }else {
             atual->fb--;
@@ -287,7 +297,7 @@ int insereArv(arvore *arv, int valor, int indice) {
         atual = arv->sentinela->fDir;
         while(atual) {
             pai = atual;
-            if(novo->valor < atual->valor) {
+            if(valor < atual->valor) {
                 atual = atual->fEsq;
             }else {
                 atual = atual->fDir;
@@ -295,12 +305,13 @@ int insereArv(arvore *arv, int valor, int indice) {
         }
         /* Linkando novo nó com o pai. */
         novo->pai = pai;
-        if(novo->valor < pai->valor) {
+        if(valor < pai->valor) {
             pai->fEsq = novo;
         }else {
             pai->fDir = novo;
         }
     }
+    /* Verificando balanceamento. */
     atualizaFB_insercao(arv, novo);
     return 1;
 }
@@ -368,7 +379,7 @@ int removeArv(arvore *arv, int valor) {
                 }
                 atual->fDir->pai = atual->pai;
             }
-            /* Atualizando FBs. */
+            /* Verificando balanceamento. */
             atualizaFB_remocao(arv, atual->pai, atual->valor);
             /* Liberando memória. */
             free(atual);
@@ -381,20 +392,85 @@ int removeArv(arvore *arv, int valor) {
 }
 
 /*
-Descrição: função responsável por esvaziar uma árvore, utilizando a função de removeArv.
+Descrição: função responsável por esvaziar uma árvore utilizando a função removeArv.
 Entrada: ponteiro para a árvore.
 Saída: nada.
 */
-void esvaziaArv(arvore *arv) {
+void destroiArv(arvore *arv) {
+    /* Removendo a raiz até a árvore ficar vazia. */
     while(arv->sentinela->fDir) {
         removeArv(arv, arv->sentinela->fDir->valor);
     }
+    /* Liberando memória da árvore. */
     free(arv->sentinela);
-    arv->sentinela = NULL;
+    free(arv);
+    arv = NULL;
 }
 
+/*
+Descrição: função responsável por ordenar os elementos na parte [inicio, meio] com a parte [meio + 1, fim] do vetor informado. Nisso, também é contado o número de inversões que há entre as duas partes (inversões do tipo split).
+Entrada: ponteiro do vetor, inteiro do início, inteiro do meio, inteiro do fim.
+Saída: inteiro da quantidade de inversões.
+*/
+int countSplit(int *vetor, int inicio, int meio, int fim) {
+    int ind1 = inicio, ind2 = meio + 1, indAux = 0; //Índices dos vetores, os dois primeiros simbolizam o índice da parte 1 e 2, respectivamente, e o terceiro é o índice do vetor auxiliar.
+    int *vetorAux = (int *)malloc(sizeof(int) * (fim - inicio + 1));
+    int t = 0; //Número de inversões. É contado por meio da quantidade de elementos restante na parte 1.
+    /* Ordenando as duas partes no vetor auxiliar, e contando as inversões quando ocorrem. */
+    while(ind1 <= meio && ind2 <= fim) {
+        if(vetor[ind1] < vetor[ind2]) {
+            vetorAux[indAux++] = vetor[ind1++];
+        }else {
+            vetorAux[indAux++] = vetor[ind2++];
+            t += meio - ind1 + 1; //O tamanho da primeira parte equivale a (meio - inicio + 1), e para descobrirmos quantos ainda faltam basta subtrair pelo (índice - inicio).
+        }
+    }
+    /* Verificando se falta colocar elementos no vetor auxiliar. */
+    if(ind1 <= meio) {
+        while(ind1 <= meio) {
+            vetorAux[indAux++] = vetor[ind1++];
+        }
+    }else if(ind2 <= fim) {
+        while(ind2 <= fim) {
+            vetorAux[indAux++] = vetor[ind2++];
+        }
+    }
+    /* Jogando os elementos do vetor auxiliar no vetor original. */
+    indAux = 0;
+    for(int x = inicio; x <= fim; x++, indAux++) {
+        vetor[x] = vetorAux[indAux];
+    }
+    /* Liberando memória do vetor auxiliar. */
+    free(vetorAux);
+    vetorAux = NULL;
+    return t;
+}
+
+/*
+Descrição: função responsável por realizar a divisão e conquista, dividindo o problema em 2 subproblemas com a metade do tamanho, e no final retornando o número de inversões encontradas.
+Entrada: ponteiro do vetor, inteiro do início, inteiro do fim (deve ser o índice final, e não o tamanho de vetor).
+Saída: inteiro da quantidade de inversões.
+*/
+int count(int *vetor, int inicio, int fim) {
+    int meio = (inicio + fim) / 2, inversoes = 0;
+    if(inicio < fim) {
+        /* Conquistando. */
+        inversoes += count(vetor, inicio, meio);
+        inversoes += count(vetor, meio+1, fim);
+        /* Combinando resultados e retornando. */
+        inversoes += countSplit(vetor, inicio, meio, fim);
+        return inversoes;
+    }
+    return 0;
+}
+
+/*
+Descrição: função principal, responsável por lidar com os inputs, por mapear os vetores e por mostrar o resultado das inversões.
+Entrada: nada.
+Saída: 0 - sucesso, 1 - erro ao alocar memória.
+*/
 int main(void) {
-    FILE *arq = fopen("/home/henriuz/01-Universidade/04-Periodo/CTCO04-Projeto-E-Analise-De-Algoritmos/Trabalho-02-Inversoes/Codigo/Casos-De-Teste/4.in", "r");
+    FILE *arq = fopen("/home/henriuz/01-Universidade/04-Periodo/CTCO04-Projeto-E-Analise-De-Algoritmos/Trabalho-02-Inversoes/Codigo/Casos-De-Teste/7.in", "r");
     arvore *arv = criaArvore();
     int tamVet1, tamVet2, tamVetMap = 0; //O tamanho real do vetor mapeado será o tamanho do menor vetor, este tamVetMap vai dizer até onde está os elementos.
     int vet1, *vet2; //O vetor 1 será mapeado diretamente na árvore, por isso ele só é um valor. Já o segundo será um vetor mesmo.
@@ -420,14 +496,28 @@ int main(void) {
     /* Lendo vetor 2 e inserindo no vetor. */
     fscanf(arq, "%d", &tamVet2);
     vet2 = (int *)malloc(sizeof(int) * tamVet2);
+    if(!vet2) {
+        printf("\nErro ao alocar memoria.");
+        destroiArv(arv);
+        fclose(arq);
+        return 1;
+    }
     for(int i = 0; i < tamVet2; i++) {
         fscanf(arq, "%d", &vet2[i]);
     }
+    /* Fechando o arquivo. */
+    fclose(arq);
     /* Criando o vetor mapeado com o menor tamanho dos vetores. */
     if(tamVet1 < tamVet2) {
         vetMap = (int *)malloc(sizeof(int) * tamVet1);
     }else {
         vetMap = (int *)malloc(sizeof(int) * tamVet2);
+    }
+    if(!vetMap) {
+        printf("\nErro ao alocar memoria.");
+        destroiArv(arv);
+        free(vet2);
+        return 1;
     }
     /* Percorrendo o vetor 2 mapeando ele conforme o 1. */
     for(int i = 0; i < tamVet2; i++) {
@@ -436,11 +526,11 @@ int main(void) {
             vetMap[tamVetMap++] = indice;
         }
     }
+    /* Liberando memória da árvore. */
+    destroiArv(arv);
     /* Calculando inversões. */
-
+    printf("%d", count(vetMap, 0, tamVetMap-1));
     /* Liberando memória. */
-    esvaziaArv(arv);
-    free(arv);
     free(vet2);
     free(vetMap);
     return 0;
