@@ -380,7 +380,68 @@ int removeArv(arvore *arv, int valor) {
     return 0;
 }
 
+/*
+Descrição: função responsável por esvaziar uma árvore, utilizando a função de removeArv.
+Entrada: ponteiro para a árvore.
+Saída: nada.
+*/
+void esvaziaArv(arvore *arv) {
+    while(arv->sentinela->fDir) {
+        removeArv(arv, arv->sentinela->fDir->valor);
+    }
+    free(arv->sentinela);
+    arv->sentinela = NULL;
+}
+
 int main(void) {
-    printf("Hello, World!\n");
+    FILE *arq = fopen("/home/henriuz/01-Universidade/04-Periodo/CTCO04-Projeto-E-Analise-De-Algoritmos/Trabalho-02-Inversoes/Codigo/Casos-De-Teste/4.in", "r");
+    arvore *arv = criaArvore();
+    int tamVet1, tamVet2, tamVetMap = 0; //O tamanho real do vetor mapeado será o tamanho do menor vetor, este tamVetMap vai dizer até onde está os elementos.
+    int vet1, *vet2; //O vetor 1 será mapeado diretamente na árvore, por isso ele só é um valor. Já o segundo será um vetor mesmo.
+    int *vetMap; //Este será o vetor 2 mapeado conforme o 1.
+    int indice; //Índice retornado na busca.
+    /* Verificando se houve algum erro na criação de algo. */
+    if(!arq) {
+        printf("\nErro ao abrir o arquivo.");
+        return 1;
+    }
+    if(!arv) {
+        printf("\nErro ao criar a árvore.");
+        return 1;
+    }
+    /* Lendo vetor 1 e inserindo na árvore. */
+    fscanf(arq, "%d", &tamVet1);
+    for(int i = 0; i < tamVet1; i++) {
+        fscanf(arq, "%d", &vet1);
+        if(!insereArv(arv, vet1, i)) {
+            printf("\nErro ao inserir elemento.");
+        }
+    }
+    /* Lendo vetor 2 e inserindo no vetor. */
+    fscanf(arq, "%d", &tamVet2);
+    vet2 = (int *)malloc(sizeof(int) * tamVet2);
+    for(int i = 0; i < tamVet2; i++) {
+        fscanf(arq, "%d", &vet2[i]);
+    }
+    /* Criando o vetor mapeado com o menor tamanho dos vetores. */
+    if(tamVet1 < tamVet2) {
+        vetMap = (int *)malloc(sizeof(int) * tamVet1);
+    }else {
+        vetMap = (int *)malloc(sizeof(int) * tamVet2);
+    }
+    /* Percorrendo o vetor 2 mapeando ele conforme o 1. */
+    for(int i = 0; i < tamVet2; i++) {
+        indice = busca(arv, vet2[i]);
+        if(indice != -1) {
+            vetMap[tamVetMap++] = indice;
+        }
+    }
+    /* Calculando inversões. */
+
+    /* Liberando memória. */
+    esvaziaArv(arv);
+    free(arv);
+    free(vet2);
+    free(vetMap);
     return 0;
 }
