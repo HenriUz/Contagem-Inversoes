@@ -470,7 +470,7 @@ Entrada: nada.
 Saída: 0 - sucesso, 1 - erro ao alocar memória.
 */
 int main(void) {
-    FILE *arq = fopen("/home/henriuz/01-Universidade/04-Periodo/CTCO04-Projeto-E-Analise-De-Algoritmos/Trabalho-02-Inversoes/Codigo/Casos-De-Teste/7.in", "r");
+    FILE *arq = fopen("Casos-De-Teste/7.in", "r");
     arvore *arv = criaArvore();
     int tamVet1, tamVet2, tamVetMap = 0; //O tamanho real do vetor mapeado será o tamanho do menor vetor, este tamVetMap vai dizer até onde está os elementos.
     int vet1, *vet2; //O vetor 1 será mapeado diretamente na árvore, por isso ele só é um valor. Já o segundo será um vetor mesmo.
